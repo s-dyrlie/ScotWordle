@@ -246,7 +246,7 @@ function buildShareText(): string {
     )
     .join("\n"); 
 
-  return `MegaWordle \n${result}\n\n${grid}`;
+  return `ScotWordle \n${result}\n\n${grid}`;
 }
 
 const copyResultButton = document.querySelector("#copy-result") as HTMLButtonElement;

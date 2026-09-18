@@ -1,6 +1,6 @@
 export type tileStatus = "green" | "yellow" | "gray";
 
-export const word_length = 8;
+export const word_length = 6;
 export const max_attempts = 6;
 
 export function evaluateGuess(guess: string, answer: string): tileStatus[] {
