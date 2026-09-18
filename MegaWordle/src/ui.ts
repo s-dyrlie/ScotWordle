@@ -1,5 +1,5 @@
 import {Game, max_attempts, word_length, type tileStatus} from "./game"
-import {ANSWERS} from "./words"
+import {ANSWERS, DEFINITIONS} from "./words"
 
 
 const existingSeed = getSeedFromUrl();
@@ -217,10 +217,15 @@ const modalTitle = document.querySelector("#modal-title") as HTMLHeadingElement;
 const modalText = document.querySelector("#modal-text") as HTMLParagraphElement;
 const modalClose = document.querySelector("#modal-close") as HTMLButtonElement;
 const resultGrid = document.querySelector("#result-grid") as HTMLDivElement;
+const resultDefinition = document.querySelector("#result-definition") as HTMLDivElement;
 
 function showModal(title: string, text: string) {
     modalTitle.textContent = title;
     modalText.textContent = text;
+
+    const definition = DEFINITIONS[game.answer] ?? "no definition available";
+    resultDefinition.innerHTML = `<p class="def-word">${game.answer}</p><p class="def-text">Definition: ${definition}</p>`;
+
     resultGrid.textContent = buildShareText();
     modalOverlay.classList.remove("hidden"); //make modal visible
 }
