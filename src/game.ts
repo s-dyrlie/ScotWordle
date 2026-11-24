@@ -40,9 +40,18 @@ import {ANSWERS, VALID_GUESSES } from "./words";
 
 export type GameStatus = "playing" | "won" | "lost";
 
-export function getRandomAnswer(): string {
-    const index = Math.floor(Math.random() * ANSWERS.length);
-    return ANSWERS[index];
+/**
+ * Parses a seed from untrusted input (e.g. a URL query param).
+ * Returns null unless it is a non-negative safe integer.
+ */
+export function parseSeed(raw: string | null): number | null {
+    if (raw === null || !/^\d+$/.test(raw)) return null;
+    const seed = Number(raw);
+    return Number.isSafeInteger(seed) ? seed : null;
+}
+
+export function getAnswerForSeed(seed: number): string {
+    return ANSWERS[seed % ANSWERS.length];
 }
 
 export function isValidGuess(word: string): boolean {

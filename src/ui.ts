@@ -1,4 +1,4 @@
-import {Game, max_attempts, word_length, type tileStatus} from "./game"
+import {Game, getAnswerForSeed, isValidGuess, max_attempts, parseSeed, word_length, type tileStatus} from "./game"
 import {ANSWERS, DEFINITIONS} from "./words"
 
 
@@ -14,7 +14,6 @@ if (existingSeed === null) {
 let game = new Game(getAnswerForSeed(seed));
 
 
-console.log("Seed: ", seed, "Answer: ", game.answer); // temporary
 let currentGuess = "";
 
 const board = document.querySelector("#board") as HTMLDivElement;
@@ -31,6 +30,7 @@ function startNewGame() {
 
   game = new Game(getAnswerForSeed(newSeed));
   currentGuess = "";
+  message.textContent = "";
   createBoard(); 
   createKeyboard(); 
   hideModal();
@@ -40,7 +40,7 @@ const newGameButton = document.querySelector("#new-game") as HTMLButtonElement;
 newGameButton.addEventListener("click", startNewGame);
 
 function createBoard() {
-    board.innerHTML = "";
+    board.replaceChildren();
 
     for (let row = 0; row < max_attempts; row++) {
         const rowElement = document.createElement("div");
@@ -61,7 +61,7 @@ function createKeyboard() {
         ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
         ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACKSPACE"],
     ];
-    keyboard.innerHTML = "";
+    keyboard.replaceChildren();
 
   for (const row of rows) {
     const rowElement = document.createElement("div"); //create a <div> per row for easier styling
@@ -69,6 +69,7 @@ function createKeyboard() {
 
     for (const key of row) {
       const button = document.createElement("button");
+      button.dataset.key = key;
       button.textContent = key === "BACKSPACE" ? "⌫" : key;
       button.classList.add("key");
 
@@ -88,10 +89,10 @@ function createKeyboard() {
 }
 
 function updateKeyboardColors() {
-  const buttons = document.querySelectorAll(".key");
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".key");
 
   buttons.forEach((button) => {
-    const key = button.textContent;
+    const key = button.dataset.key;
     if (!key) return;
 
     if (key === "ENTER" || key === "BACKSPACE") return;
@@ -161,6 +162,8 @@ function handleKey(key: string) {
         return;
     }
 
+    message.textContent = "";
+
     if (key === "BACKSPACE") {
         currentGuess = currentGuess.slice(0, -1);
         updateBoard();
@@ -174,6 +177,16 @@ function handleKey(key: string) {
 }
 
 function submitGuess() {
+    if (currentGuess.length < word_length) {
+        message.textContent = "Not enough letters";
+        return;
+    }
+
+    if (!isValidGuess(currentGuess)) {
+        message.textContent = "Not in word list";
+        return;
+    }
+
     const result = game.submitGuess(currentGuess);
 
     if (result.ok === false) {
@@ -186,7 +199,7 @@ function submitGuess() {
     if (game.status === "won") {
         showModal(
             "You won!",
-            `You solved it in ${game.guesses.length} attempts`
+            `You solved it in ${game.guesses.length} ${game.guesses.length === 1 ? "attempt" : "attempts"}`
         );
     } else if (game.status === "lost") {
         showModal(
@@ -199,13 +212,18 @@ function submitGuess() {
 }
 
 window.addEventListener("keydown", (event) => {
+    // Leave browser/OS shortcuts (Cmd+R, Ctrl+C, ...) alone
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
     if (event.key === "Enter") {
+        // Stop Enter from also "clicking" whichever on-screen key has focus
+        event.preventDefault();
         handleKey("ENTER");
     } else if (event.key === "Backspace") {
         handleKey("BACKSPACE");
     } else {
         const upper = event.key.toUpperCase();
-        
+
         if (/^[A-Z]$/.test(upper)) {
             handleKey(upper);
         }
@@ -224,7 +242,13 @@ function showModal(title: string, text: string) {
     modalText.textContent = text;
 
     const definition = DEFINITIONS[game.answer] ?? "no definition available";
-    resultDefinition.innerHTML = `<p class="def-word">${game.answer}</p><p class="def-text">Definition: ${definition}</p>`;
+    const defWord = document.createElement("p");
+    defWord.className = "def-word";
+    defWord.textContent = game.answer;
+    const defText = document.createElement("p");
+    defText.className = "def-text";
+    defText.textContent = `Definition: ${definition}`;
+    resultDefinition.replaceChildren(defWord, defText);
 
     resultGrid.textContent = buildShareText();
     modalOverlay.classList.remove("hidden"); //make modal visible
@@ -264,7 +288,7 @@ copyResultButton.addEventListener("click", async () => {
     copyResultButton.textContent = "Copied";
 
     setTimeout(() => {
-      copyResultButton.textContent = "Copy resultat";
+      copyResultButton.textContent = "Copy result";
     }, 2000);
   } catch (error) {
     console.error("Could not copy:", error);
@@ -275,13 +299,7 @@ modalClose.addEventListener("click", hideModal);
 
 function getSeedFromUrl(): number | null  {
     const params = new URLSearchParams(window.location.search);
-    const seed = params.get("seed");
-
-    return seed ? Number(seed) : null;
-}
-
-function getAnswerForSeed(seed: number): string {
-  return ANSWERS[seed % ANSWERS.length];
+    return parseSeed(params.get("seed"));
 }
 
 createBoard();
